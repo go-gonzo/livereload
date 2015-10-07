@@ -21,26 +21,29 @@ var (
 
 const serverName = "gonzo-livereload"
 
-var Endpoint = "http://localhost:35729/"
+var (
+	Endpoint = "localhost:35729"
+	Proto    = "http"
+)
 
-type Config struct {
+type Options struct {
 	LiveCSS bool
 }
 
 type Server interface {
 	Reload() gonzo.Stage
 	Start() kargar.Action
-	Client() template.HTML
+	Client() func() template.HTML
 }
 
-func New(conf Config) Server {
-	return &server{livecss: conf.LiveCSS}
+func New(opt Options) Server {
+	return &server{opt: opt}
 }
 
 type server struct {
 	cb           atomic.Value
 	clientScript atomic.Value
-	livecss      bool
+	opt          Options
 }
 
 func (s *server) Reload() gonzo.Stage {
@@ -55,7 +58,7 @@ func (s *server) Reload() gonzo.Stage {
 				cb, ok := s.cb.Load().(func(string, bool))
 				if ok {
 					ctx.Infof("Reloading %s", path)
-					cb(path, s.livecss)
+					cb(path, s.opt.LiveCSS)
 				}
 				out <- file
 			case <-ctx.Done():
@@ -67,7 +70,7 @@ func (s *server) Reload() gonzo.Stage {
 
 const clientScript = `
 <script>
-var lrs = document.createElement("script"); lrs.type = "text/javascript"; lrs.src = "%s";
+var lrs = document.createElement("script"); lrs.type = "text/javascript"; lrs.src = "%s://%s";
 document.body.appendChild(lrs);
 </script>
 `
@@ -86,7 +89,7 @@ func (s *server) Start() kargar.Action {
 		}(err)
 
 		s.cb.Store(server.Reload)
-		s.clientScript.Store(fmt.Sprintf(clientScript, Endpoint))
+		s.clientScript.Store(fmt.Sprintf(clientScript, Proto, Endpoint))
 		select {
 		case err := <-err:
 			return err
@@ -96,7 +99,10 @@ func (s *server) Start() kargar.Action {
 	}
 }
 
-func (s *server) Client() template.HTML {
+func (s *server) Client() func() template.HTML {
 	client, _ := s.clientScript.Load().(string)
-	return template.HTML(client)
+	src := template.HTML(client)
+	return func() template.HTML {
+		return src
+	}
 }
