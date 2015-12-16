@@ -70,7 +70,7 @@ func (s *server) Reload() gonzo.Stage {
 
 const clientScript = `
 <script>
-var lrs = document.createElement("script"); lrs.type = "text/javascript"; lrs.src = "%s://%s";
+var lrs = document.createElement("script"); lrs.type = "text/javascript"; lrs.src = "%s://%s/livereload.js";
 document.body.appendChild(lrs);
 </script>
 `
