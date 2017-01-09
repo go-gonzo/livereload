@@ -1,4 +1,4 @@
-// This package provide a Slurp `stage` from https://github.com/omeid/livereload
+// This package provide a Gonzo `stage` from https://github.com/omeid/livereload
 
 package livereload
 
